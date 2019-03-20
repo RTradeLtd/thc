@@ -2,6 +2,7 @@ package thc
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -41,4 +42,12 @@ func (v2 *V2) Login() error {
 	}
 	v2.auth.jwt = out.Token
 	return nil
+}
+
+// GetJWT is used to return the JWT you use to authorize this account
+func (v2 *V2) GetJWT() (string, error) {
+	if v2.auth.jwt == "" {
+		return "", errors.New("you have not logged in yet")
+	}
+	return v2.auth.jwt, nil
 }
