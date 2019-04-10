@@ -36,6 +36,8 @@ const (
 	PinAddPublic Call = "/ipfs/public/pin/%s"
 	// LensIndex is used to index content against lens
 	LensIndex Call = "/lens/index"
+	// LensSearch is used to submit a search against the lens index
+	LensSearch Call = "/lens/search"
 )
 
 // V2 is our interface with temporal's v2 api

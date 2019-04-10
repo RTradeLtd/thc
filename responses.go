@@ -20,3 +20,17 @@ type IndexResponse struct {
 	Category    string   `protobuf:"bytes,4,opt,name=category,proto3" json:"category,omitempty"`
 	Tags        []string `protobuf:"bytes,5,rep,name=tags,proto3" json:"tags,omitempty"`
 }
+
+type SearchResponse struct {
+	Code     int `json:"code"`
+	Response struct {
+		Results []struct {
+			Score float64 `json:"score"`
+			Doc   struct {
+				Hash     string `json:"hash"`
+				MimeType string `json:"mime_type"`
+				Category string `json:"category"`
+			} `json:"doc"`
+		} `json:"results"`
+	} `json:"response"`
+}

@@ -69,3 +69,45 @@ func (v2 *V2) IndexHash(hash string, reindex bool) (string, error) {
 	}
 	return response.Hash, nil
 }
+
+func (v2 *V2) SearchLens(query string) (*SearchResponse, error) {
+	bodyBuff := &bytes.Buffer{}
+	bodyWriter := multipart.NewWriter(bodyBuff)
+	queryWriter, err := bodyWriter.CreateFormField("query")
+	if err != nil {
+		return nil, err
+	}
+	if _, err := io.Copy(queryWriter, strings.NewReader(query)); err != nil {
+		return nil, err
+	}
+	if err := bodyWriter.Close(); err != nil {
+		return nil, err
+	}
+	fmt.Println(LensIndex)
+	req, err := http.NewRequest(
+		"POST",
+		v2.formatURL(LensSearch),
+		bodyBuff,
+	)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Add("Content-Type", bodyWriter.FormDataContentType())
+	res, err := v2.c.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+	if res.StatusCode != 200 {
+		return nil, v2.handleError(body)
+	}
+	var response SearchResponse
+	if err := json.Unmarshal(body, &response); err != nil {
+		return nil, err
+	}
+	return &response, nil
+}

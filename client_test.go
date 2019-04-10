@@ -1,6 +1,7 @@
 package thc
 
 import (
+	"fmt"
 	"os"
 	"testing"
 )
@@ -83,5 +84,18 @@ func Test_Pin_Add(t *testing.T) {
 	}
 	if _, err := v2.PinAdd("QmY8VGk1QRd7ko87wk3YscWBRvokzDeH4xobJudCbGNM6B", "5"); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func Test_Lens_Search(t *testing.T) {
+	t.Skip()
+	v2 := NewV2(os.Getenv("USER"), os.Getenv("PASS"), DevURL)
+	if err := v2.Login(); err != nil {
+		t.Fatal(err)
+	}
+	if resp, err := v2.SearchLens("blockchain"); err != nil {
+		t.Fatal(err)
+	} else {
+		fmt.Println(resp)
 	}
 }
