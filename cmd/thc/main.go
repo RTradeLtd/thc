@@ -45,32 +45,92 @@ func loadFlags() []cli.Flag {
 func loadCommands() cli.Commands {
 	return []cli.Command{
 		{
-			Name:  "upload-dir",
-			Usage: "upload a directory",
+			Name:  "upload",
+			Usage: "upload commands",
+			Subcommands: cli.Commands{
+				{
+					Name:        "dir",
+					Usage:       "upload directory",
+					Description: "uploads a directory and pins for 1 month",
+					Action: func(c *cli.Context) error {
+						v2 := thc.NewV2(user, pass, thc.ProdURL)
+						if err := v2.Login(); err != nil {
+							return err
+						}
+						jwt, err := v2.GetJWT()
+						if err != nil {
+							return err
+						}
+						shell := shell.NewDirectShell(ipfsAPI).WithAuthorization(jwt)
+						if c.String("dir") == "" {
+							return errors.New("dir flag is empty")
+						}
+						if hash, err := shell.AddDir(c.String("dir")); err != nil {
+							return err
+						} else {
+							fmt.Println("hash of directory", hash)
+							fmt.Println(hash + " uploaded and pinned for 1 month")
+						}
+						return nil
+					},
+					Flags: []cli.Flag{
+						cli.StringFlag{
+							Name:  "dir",
+							Usage: "the directory to upload",
+						},
+					},
+				},
+				{
+					Name:        "file",
+					Usage:       "upload a file",
+					Description: "uploads a file and pins for 1 month",
+					Action: func(c *cli.Context) error {
+						v2 := thc.NewV2(user, pass, thc.ProdURL)
+						if err := v2.Login(); err != nil {
+							return err
+						}
+						hash, err := v2.FileAdd(
+							c.String("file.name"),
+							thc.FileAddOpts{HoldTime: "1"},
+						)
+						if err != nil {
+							return err
+						}
+						fmt.Println("hash of file", hash)
+						fmt.Println(hash + " uploaded and pinned for 1 month")
+						return nil
+					},
+					Flags: []cli.Flag{
+						cli.StringFlag{
+							Name:  "file.name, fn",
+							Usage: "the file to upload",
+						},
+					},
+				},
+			},
+		},
+		{
+			Name:        "pin",
+			Usage:       "pin a hash",
+			Description: "pins a hash for 1 month",
 			Action: func(c *cli.Context) error {
 				v2 := thc.NewV2(user, pass, thc.ProdURL)
 				if err := v2.Login(); err != nil {
 					return err
 				}
-				jwt, err := v2.GetJWT()
-				if err != nil {
+				if c.String("hash") == "" {
+					return errors.New("hash flag cant be empty")
+				}
+				if _, err := v2.PinAdd(c.String("hash"), "1"); err != nil {
 					return err
 				}
-				shell := shell.NewDirectShell(ipfsAPI).WithAuthorization(jwt)
-				if c.String("dir") == "" {
-					return errors.New("dir flag is empty")
-				}
-				if hash, err := shell.AddDir(c.String("dir")); err != nil {
-					return err
-				} else {
-					fmt.Println("hash of directory", hash)
-				}
+				fmt.Println(c.String("hash") + " pinned for 1 month")
 				return nil
 			},
 			Flags: []cli.Flag{
 				cli.StringFlag{
-					Name:  "dir",
-					Usage: "the directory to upload",
+					Name:  "hash",
+					Usage: "the hash to pin",
 				},
 			},
 		},
