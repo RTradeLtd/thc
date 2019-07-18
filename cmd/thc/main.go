@@ -2,58 +2,78 @@ package main
 
 import (
 	"bufio"
-	"flag"
+	"errors"
 	"fmt"
 	"log"
 	"os"
 
+	shell "github.com/RTradeLtd/go-ipfs-api"
 	"github.com/RTradeLtd/thc"
+	"github.com/urfave/cli"
 )
 
 var (
-	cidInputFile = flag.String("file.name", "", "specify input file for scripting")
-	user         = flag.String("user.name", "", "specify user login name")
-	pass         = flag.String("user.pass", "", "specify user login password")
-	dev          = flag.Bool("dev", true, "indicate dev or prod api")
-	mode         = flag.String("mode", "index", "specify run mode")
-	url          string
+	user, pass, url string
+	ipfsAPI         = "https://api.ipfs.temporal.cloud"
+	dev             bool
 )
 
-func init() {
-	flag.Parse()
-	if *user == "" {
-		log.Fatal("user.name must not be empty")
-	}
-	if *pass == "" {
-		log.Fatal("user.pass must not be empty")
-	}
-	if *dev {
-		url = thc.DevURL
-	} else {
-		url = thc.ProdURL
+func main() {
+	app := cli.NewApp()
+	app.Flags = loadFlags()
+	app.Commands = loadCommands()
+	if err := app.Run(os.Args); err != nil {
+		log.Fatal(err)
 	}
 }
 
-func main() {
-	v2 := thc.NewV2(*user, *pass, url)
-	if err := v2.Login(); err != nil {
-		log.Fatal(err)
+func loadFlags() []cli.Flag {
+	return []cli.Flag{
+		cli.StringFlag{
+			Name:        "user.name",
+			Usage:       "the username of your temporal account",
+			Destination: &user,
+		},
+		cli.StringFlag{
+			Name:        "user.pass",
+			Usage:       "the password of your temporal account",
+			Destination: &pass,
+		},
 	}
-	if *mode == "index" {
-		if *cidInputFile == "" {
-			log.Fatal("file.name cant be empty")
-		}
-		cids, err := readFile(*cidInputFile)
-		if err != nil {
-			log.Fatal(err)
-		}
-		for _, cid := range cids {
-			if resp, err := v2.IndexHash(cid, true); err != nil {
-				log.Fatal(err)
-			} else {
-				fmt.Println(resp)
-			}
-		}
+}
+
+func loadCommands() cli.Commands {
+	return []cli.Command{
+		{
+			Name:  "upload-dir",
+			Usage: "upload a directory",
+			Action: func(c *cli.Context) error {
+				v2 := thc.NewV2(user, pass, thc.ProdURL)
+				if err := v2.Login(); err != nil {
+					return err
+				}
+				jwt, err := v2.GetJWT()
+				if err != nil {
+					return err
+				}
+				shell := shell.NewDirectShell(ipfsAPI).WithAuthorization(jwt)
+				if c.String("dir") == "" {
+					return errors.New("dir flag is empty")
+				}
+				if hash, err := shell.AddDir(c.String("dir")); err != nil {
+					return err
+				} else {
+					fmt.Println("hash of directory", hash)
+				}
+				return nil
+			},
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "dir",
+					Usage: "the directory to upload",
+				},
+			},
+		},
 	}
 }
 
