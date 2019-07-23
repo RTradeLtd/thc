@@ -134,6 +134,56 @@ func loadCommands() cli.Commands {
 				},
 			},
 		},
+		{
+			Name:  "lens",
+			Usage: "use the lens search engine",
+			Subcommands: cli.Commands{
+				{
+					Name:  "index",
+					Usage: "index a hash",
+					Action: func(c *cli.Context) error {
+						v2 := thc.NewV2(user, pass, thc.ProdURL)
+						if err := v2.Login(); err != nil {
+							return err
+						}
+						_, err := v2.IndexHash(c.String("hash"), c.Bool("reindex"))
+						return err
+					},
+					Flags: []cli.Flag{
+						cli.StringFlag{
+							Name:  "hash",
+							Usage: "the hash to index",
+						},
+						cli.BoolFlag{
+							Name:  "reindex",
+							Usage: "force a reindex",
+						},
+					},
+				},
+				{
+					Name:  "search",
+					Usage: "search the lens index",
+					Action: func(c *cli.Context) error {
+						v2 := thc.NewV2(user, pass, thc.ProdURL)
+						if err := v2.Login(); err != nil {
+							return err
+						}
+						resp, err := v2.SearchLens(c.String("query"))
+						if err != nil {
+							return err
+						}
+						fmt.Printf("results\n%+v\n", resp.Response.Results)
+						return nil
+					},
+					Flags: []cli.Flag{
+						cli.StringFlag{
+							Name:  "query",
+							Usage: "the query to perform",
+						},
+					},
+				},
+			},
+		},
 	}
 }
 
