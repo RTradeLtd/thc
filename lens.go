@@ -3,7 +3,6 @@ package thc
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"mime/multipart"
@@ -41,7 +40,6 @@ func (v2 *V2) IndexHash(hash string, reindex bool) (string, error) {
 	if err := bodyWriter.Close(); err != nil {
 		return "", err
 	}
-	fmt.Println(LensIndex)
 	req, err := http.NewRequest(
 		"POST",
 		v2.formatURL(LensIndex),
@@ -83,7 +81,6 @@ func (v2 *V2) SearchLens(query string) (*SearchResponse, error) {
 	if err := bodyWriter.Close(); err != nil {
 		return nil, err
 	}
-	fmt.Println(LensIndex)
 	req, err := http.NewRequest(
 		"POST",
 		v2.formatURL(LensSearch),
