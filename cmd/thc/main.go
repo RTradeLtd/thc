@@ -51,7 +51,7 @@ func loadCommands() cli.Commands {
 				{
 					Name:        "dir",
 					Usage:       "upload directory",
-					Description: "uploads a directory and pins for 1 month",
+					Description: "uploads a directory and pins for specified duration",
 					Action: func(c *cli.Context) error {
 						v2 := thc.NewV2(user, pass, thc.ProdURL)
 						if err := v2.Login(); err != nil {
@@ -65,12 +65,16 @@ func loadCommands() cli.Commands {
 						if c.String("dir") == "" {
 							return errors.New("dir flag is empty")
 						}
-						if hash, err := shell.AddDir(c.String("dir")); err != nil {
+						var hash string
+						if hash, err = shell.AddDir(c.String("dir")); err != nil {
 							return err
-						} else {
-							fmt.Println("hash of directory", hash)
-							fmt.Println(hash + " uploaded and pinned for 1 month")
 						}
+						fmt.Println("hash of directory", hash)
+						fmt.Println("pinning directory hash")
+						if _, err := v2.PinExtend(hash, c.String("hold.time")); err != nil {
+							return err
+						}
+						fmt.Println("successfully pinned directory hash")
 						return nil
 					},
 					Flags: []cli.Flag{
@@ -78,12 +82,17 @@ func loadCommands() cli.Commands {
 							Name:  "dir",
 							Usage: "the directory to upload",
 						},
+						cli.StringFlag{
+							Name:  "hold.time, ht",
+							Usage: "the number of months to pin for",
+							Value: "1",
+						},
 					},
 				},
 				{
 					Name:        "file",
 					Usage:       "upload a file",
-					Description: "uploads a file and pins for 1 month",
+					Description: "uploads a file and pins for specified duration",
 					Action: func(c *cli.Context) error {
 						v2 := thc.NewV2(user, pass, thc.ProdURL)
 						if err := v2.Login(); err != nil {
@@ -91,7 +100,7 @@ func loadCommands() cli.Commands {
 						}
 						hash, err := v2.FileAdd(
 							c.String("file.name"),
-							thc.FileAddOpts{HoldTime: "1"},
+							thc.FileAddOpts{HoldTime: c.String("hold.time")},
 						)
 						if err != nil {
 							return err
@@ -105,6 +114,11 @@ func loadCommands() cli.Commands {
 							Name:  "file.name, fn",
 							Usage: "the file to upload",
 						},
+						cli.StringFlag{
+							Name:  "hold.time, ht",
+							Usage: "the number of months to pin for",
+							Value: "1",
+						},
 					},
 				},
 			},
@@ -112,7 +126,7 @@ func loadCommands() cli.Commands {
 		{
 			Name:        "pin",
 			Usage:       "pin a hash",
-			Description: "pins a hash for 1 month",
+			Description: "pins a hash for the specified duration",
 			Action: func(c *cli.Context) error {
 				v2 := thc.NewV2(user, pass, thc.ProdURL)
 				if err := v2.Login(); err != nil {
@@ -121,7 +135,7 @@ func loadCommands() cli.Commands {
 				if c.String("hash") == "" {
 					return errors.New("hash flag cant be empty")
 				}
-				if _, err := v2.PinAdd(c.String("hash"), "1"); err != nil {
+				if _, err := v2.PinAdd(c.String("hash"), c.String("hold.time")); err != nil {
 					return err
 				}
 				fmt.Println(c.String("hash") + " pinned for 1 month")
@@ -131,6 +145,11 @@ func loadCommands() cli.Commands {
 				cli.StringFlag{
 					Name:  "hash",
 					Usage: "the hash to pin",
+				},
+				cli.StringFlag{
+					Name:  "hold.time, ht",
+					Usage: "the number of months to pin for",
+					Value: "1",
 				},
 			},
 		},
