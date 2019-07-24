@@ -34,6 +34,8 @@ const (
 	FileAddPublic Call = "/ipfs/public/file/add"
 	// PinAddPublic is a pin add api call for public ipfs network
 	PinAddPublic Call = "/ipfs/public/pin/%s"
+	// PinExtendPublic is used to extend pin durations
+	PinExtendPublic Call = "/ipfs/public/pin/%s/extend"
 	// LensIndex is used to index content against lens
 	LensIndex Call = "/lens/index"
 	// LensSearch is used to submit a search against the lens index
