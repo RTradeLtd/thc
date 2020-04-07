@@ -15,6 +15,7 @@ import (
 var (
 	user, pass, url string
 	ipfsAPI         = "https://api.ipfs.temporal.cloud"
+	ipfsAPIDev      = "https://dev.api.ipfs.temporal.cloud"
 	dev             bool
 )
 
@@ -39,6 +40,11 @@ func loadFlags() []cli.Flag {
 			Usage:       "the password of your temporal account",
 			Destination: &pass,
 		},
+		cli.BoolFlag{
+			Name:        "dev",
+			Usage:       "toggle usage of the dev environment",
+			Destination: &dev,
+		},
 	}
 }
 
@@ -53,7 +59,7 @@ func loadCommands() cli.Commands {
 					Usage:       "upload directory",
 					Description: "uploads a directory and pins for specified duration",
 					Action: func(c *cli.Context) error {
-						v2 := thc.NewV2(user, pass, thc.ProdURL)
+						v2 := thc.NewV2(user, pass, getTHCURL())
 						if err := v2.Login(); err != nil {
 							return err
 						}
@@ -61,15 +67,16 @@ func loadCommands() cli.Commands {
 						if err != nil {
 							return err
 						}
-						shell := shell.NewDirectShell(ipfsAPI).WithAuthorization(jwt)
+						shell := shell.NewDirectShell(getIPFSAPI()).WithAuthorization(jwt)
 						if c.String("dir") == "" {
 							return errors.New("dir flag is empty")
 						}
 						var hash string
+						fmt.Println("uploading directory")
 						if hash, err = shell.AddDir(c.String("dir")); err != nil {
 							return err
 						}
-						fmt.Println("hash of directory", hash)
+						fmt.Println("hash of directory: ", hash)
 						fmt.Println("pinning directory hash")
 						if _, err := v2.PinExtend(hash, c.String("hold.time")); err != nil {
 							return err
@@ -94,7 +101,7 @@ func loadCommands() cli.Commands {
 					Usage:       "upload a file",
 					Description: "uploads a file and pins for specified duration",
 					Action: func(c *cli.Context) error {
-						v2 := thc.NewV2(user, pass, thc.ProdURL)
+						v2 := thc.NewV2(user, pass, getTHCURL())
 						if err := v2.Login(); err != nil {
 							return err
 						}
@@ -128,7 +135,7 @@ func loadCommands() cli.Commands {
 			Usage:       "pin a hash",
 			Description: "pins a hash for the specified duration",
 			Action: func(c *cli.Context) error {
-				v2 := thc.NewV2(user, pass, thc.ProdURL)
+				v2 := thc.NewV2(user, pass, getTHCURL())
 				if err := v2.Login(); err != nil {
 					return err
 				}
@@ -161,7 +168,7 @@ func loadCommands() cli.Commands {
 					Name:  "index",
 					Usage: "index a hash",
 					Action: func(c *cli.Context) error {
-						v2 := thc.NewV2(user, pass, thc.ProdURL)
+						v2 := thc.NewV2(user, pass, getTHCURL())
 						if err := v2.Login(); err != nil {
 							return err
 						}
@@ -183,7 +190,7 @@ func loadCommands() cli.Commands {
 					Name:  "search",
 					Usage: "search the lens index",
 					Action: func(c *cli.Context) error {
-						v2 := thc.NewV2(user, pass, thc.ProdURL)
+						v2 := thc.NewV2(user, pass, getTHCURL())
 						if err := v2.Login(); err != nil {
 							return err
 						}
@@ -220,4 +227,18 @@ func readFile(path string) ([]string, error) {
 		lines = append(lines, scanner.Text())
 	}
 	return lines, scanner.Err()
+}
+
+func getTHCURL() string {
+	if dev {
+		return thc.DevURL
+	}
+	return thc.ProdURL
+}
+
+func getIPFSAPI() string {
+	if dev {
+		return ipfsAPIDev
+	}
+	return ipfsAPI
 }
