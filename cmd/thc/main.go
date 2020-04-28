@@ -4,7 +4,9 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 
 	shell "github.com/RTradeLtd/go-ipfs-api"
@@ -45,11 +47,49 @@ func loadFlags() []cli.Flag {
 			Usage:       "toggle usage of the dev environment",
 			Destination: &dev,
 		},
+		cli.StringFlag{
+			Name:  "custom.url",
+			Usage: "specify a custom url to override defaults",
+		},
 	}
 }
 
 func loadCommands() cli.Commands {
 	return []cli.Command{
+		{
+			Name:  "warp-status",
+			Usage: "get warp status",
+			Action: func(c *cli.Context) error {
+				url := getIPFSAPI(c)
+				req, err := http.NewRequest("POST", url+"/ping", nil)
+				if err != nil {
+					return err
+				}
+				resp, err := httpDo(req)
+				if err != nil {
+					return err
+				}
+				fmt.Println(resp)
+				return nil
+			},
+		},
+		{
+			Name:  "temporal-status",
+			Usage: "get warp status",
+			Action: func(c *cli.Context) error {
+				url := getTHCURL(c)
+				req, err := http.NewRequest("POST", url+"/v2/systems/check", nil)
+				if err != nil {
+					return err
+				}
+				resp, err := httpDo(req)
+				if err != nil {
+					return err
+				}
+				fmt.Println(resp)
+				return nil
+			},
+		},
 		{
 			Name:  "upload",
 			Usage: "upload commands",
@@ -59,15 +99,19 @@ func loadCommands() cli.Commands {
 					Usage:       "upload directory",
 					Description: "uploads a directory and pins for specified duration",
 					Action: func(c *cli.Context) error {
-						v2 := thc.NewV2(user, pass, getTHCURL())
+						fmt.Println("starting processing")
+						v2 := thc.NewV2(user, pass, getTHCURL(c))
 						if err := v2.Login(); err != nil {
+							fmt.Println("failed to login")
 							return err
 						}
+						fmt.Println("getting jwt")
 						jwt, err := v2.GetJWT()
 						if err != nil {
+							fmt.Println("failed to get jwt")
 							return err
 						}
-						shell := shell.NewDirectShell(getIPFSAPI()).WithAuthorization(jwt)
+						shell := shell.NewDirectShell(getIPFSAPI(c)).WithAuthorization(jwt)
 						if c.String("dir") == "" {
 							return errors.New("dir flag is empty")
 						}
@@ -101,7 +145,7 @@ func loadCommands() cli.Commands {
 					Usage:       "upload a file",
 					Description: "uploads a file and pins for specified duration",
 					Action: func(c *cli.Context) error {
-						v2 := thc.NewV2(user, pass, getTHCURL())
+						v2 := thc.NewV2(user, pass, getTHCURL(c))
 						if err := v2.Login(); err != nil {
 							return err
 						}
@@ -135,7 +179,7 @@ func loadCommands() cli.Commands {
 			Usage:       "pin a hash",
 			Description: "pins a hash for the specified duration",
 			Action: func(c *cli.Context) error {
-				v2 := thc.NewV2(user, pass, getTHCURL())
+				v2 := thc.NewV2(user, pass, getTHCURL(c))
 				if err := v2.Login(); err != nil {
 					return err
 				}
@@ -168,7 +212,7 @@ func loadCommands() cli.Commands {
 					Name:  "index",
 					Usage: "index a hash",
 					Action: func(c *cli.Context) error {
-						v2 := thc.NewV2(user, pass, getTHCURL())
+						v2 := thc.NewV2(user, pass, getTHCURL(c))
 						if err := v2.Login(); err != nil {
 							return err
 						}
@@ -190,7 +234,7 @@ func loadCommands() cli.Commands {
 					Name:  "search",
 					Usage: "search the lens index",
 					Action: func(c *cli.Context) error {
-						v2 := thc.NewV2(user, pass, getTHCURL())
+						v2 := thc.NewV2(user, pass, getTHCURL(c))
 						if err := v2.Login(); err != nil {
 							return err
 						}
@@ -229,16 +273,36 @@ func readFile(path string) ([]string, error) {
 	return lines, scanner.Err()
 }
 
-func getTHCURL() string {
+func getTHCURL(c *cli.Context) string {
+	if c.String("custom.url") != "" {
+		return c.String("custom.url")
+	}
 	if dev {
 		return thc.DevURL
 	}
 	return thc.ProdURL
 }
 
-func getIPFSAPI() string {
+func getIPFSAPI(c *cli.Context) string {
+	if c.String("custom.url") != "" {
+		return c.String("custom.url")
+	}
 	if dev {
 		return ipfsAPIDev
 	}
 	return ipfsAPI
+}
+
+func httpDo(req *http.Request) (string, error) {
+	client := http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
 }
