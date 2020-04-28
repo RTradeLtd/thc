@@ -50,6 +50,7 @@ func loadFlags() []cli.Flag {
 		cli.StringFlag{
 			Name:  "custom.url",
 			Usage: "specify a custom url to override defaults",
+			Value: "",
 		},
 	}
 }
@@ -75,10 +76,10 @@ func loadCommands() cli.Commands {
 		},
 		{
 			Name:  "temporal-status",
-			Usage: "get warp status",
+			Usage: "get temporal status",
 			Action: func(c *cli.Context) error {
 				url := getTHCURL(c)
-				req, err := http.NewRequest("POST", url+"/v2/systems/check", nil)
+				req, err := http.NewRequest("GET", url+"/systems/check", nil)
 				if err != nil {
 					return err
 				}
@@ -274,8 +275,8 @@ func readFile(path string) ([]string, error) {
 }
 
 func getTHCURL(c *cli.Context) string {
-	if c.String("custom.url") != "" {
-		return c.String("custom.url")
+	if c.GlobalString("custom.url") != "" {
+		return c.GlobalString("custom.url")
 	}
 	if dev {
 		return thc.DevURL
@@ -284,8 +285,8 @@ func getTHCURL(c *cli.Context) string {
 }
 
 func getIPFSAPI(c *cli.Context) string {
-	if c.String("custom.url") != "" {
-		return c.String("custom.url")
+	if c.GlobalString("custom.url") != "" {
+		return c.GlobalString("custom.url")
 	}
 	if dev {
 		return ipfsAPIDev
